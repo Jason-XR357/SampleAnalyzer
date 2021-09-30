@@ -18,12 +18,15 @@ SPIADS127xAnalyzerResults::~SPIADS127xAnalyzerResults()
 
 void SPIADS127xAnalyzerResults::GenerateBubbleText( U64 frame_index, Channel& channel, DisplayBase display_base )
 {
-	ClearResultStrings();
-	Frame frame = GetFrame( frame_index );
+	if(channel == mSettings->Channel_DATA)
+	{
+		ClearResultStrings();
+		Frame frame = GetFrame( frame_index );
 
-	char number_str[128];
-	AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 32, number_str, 128 );
-	AddResultString( number_str );
+		char number_str[128];
+		AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 32, number_str, 128 );
+		AddResultString( number_str );
+	}
 }
 
 void SPIADS127xAnalyzerResults::GenerateExportFile( const char* file, DisplayBase display_base, U32 export_type_user_id )

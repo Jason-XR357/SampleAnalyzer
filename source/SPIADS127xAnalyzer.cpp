@@ -19,7 +19,7 @@ void SPIADS127xAnalyzer::SetupResults()
 {
 	mResults.reset( new SPIADS127xAnalyzerResults( this, mSettings.get() ) );
 	SetAnalyzerResults( mResults.get() );
-	mResults->AddChannelBubblesWillAppearOn( mSettings->Channel_DRDY );
+	mResults->AddChannelBubblesWillAppearOn( mSettings->Channel_DATA );
 }
 
 void SPIADS127xAnalyzer::WorkerThread()
@@ -52,7 +52,8 @@ void SPIADS127xAnalyzer::WorkerThread()
 				mSCLK->AdvanceToNextEdge(); // RE 
 
 				//let's put a dot exactly where we sample this bit:
-				mResults->AddMarker( mSCLK->GetSampleNumber(), AnalyzerResults::UpArrow, mSettings->Channel_SCLK );
+				mResults->AddMarker( mSCLK->GetSampleNumber(), AnalyzerResults::DownArrow, mSettings->Channel_SCLK );
+				mResults->AddMarker( mSCLK->GetSampleNumber(), AnalyzerResults::X, mSettings->Channel_DATA );
 				mDATA->AdvanceToAbsPosition( mSCLK->GetSampleNumber() );
 				if( mDATA->GetBitState() == BIT_HIGH )
 					data |= (1 << i);
@@ -70,7 +71,8 @@ void SPIADS127xAnalyzer::WorkerThread()
 			mResults->CommitResults();
 			ReportProgress( frame.mEndingSampleInclusive );
 		}
-		mDRDY->AdvanceToNextEdge(); // FE 
+		mDRDY->AdvanceToNextEdge();  // FE
+		mDRDY->AdvanceToNextEdge();  // RE
 	}
 }
 
