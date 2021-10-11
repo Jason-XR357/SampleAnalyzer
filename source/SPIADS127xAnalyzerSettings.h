@@ -19,12 +19,16 @@ public:
 	Channel Channel_DATA;	// the SPI DATA -> DATA1 pin, MSB -- channel 0 first, 24 bits * 8 channels
 	Channel Channel_DRDY;	// data ready signal, falling edge 
 	double bits;
+	bool export_data;
+	bool export_timing;
 
 protected:
 	std::auto_ptr< AnalyzerSettingInterfaceChannel >	mSCLKChannelInterface;
 	std::auto_ptr< AnalyzerSettingInterfaceChannel >	mDATAChannelInterface;
 	std::auto_ptr< AnalyzerSettingInterfaceChannel >	mDRDYChannelInterface;
 	std::auto_ptr< AnalyzerSettingInterfaceNumberList >	mBitsNumberInterface;
+	std::auto_ptr< AnalyzerSettingInterfaceBool >		mExportData;
+	std::auto_ptr< AnalyzerSettingInterfaceBool >		mExportTiming;
 
 private:
 	void AddAllChannels(bool is_used_flag);

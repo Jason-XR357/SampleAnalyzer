@@ -8,6 +8,8 @@ Channel_SCLK( UNDEFINED_CHANNEL ),
 Channel_DRDY( UNDEFINED_CHANNEL )
 {
 	bits = 16.0;
+	export_data = true;
+	export_timing = true;
 
 	mSCLKChannelInterface.reset( new AnalyzerSettingInterfaceChannel() );
 	mSCLKChannelInterface->SetTitleAndTooltip( "SCLK", "SPI data clock" );
@@ -26,13 +28,20 @@ Channel_DRDY( UNDEFINED_CHANNEL )
 	mBitsNumberInterface->AddNumber( 16.0, "16 MSB" , "16 bit data");
 	mBitsNumberInterface->AddNumber( 24.0, "24" , "All 24 bits");
 
+	mExportData.reset( new AnalyzerSettingInterfaceBool() );
+	mExportData->SetTitleAndTooltip( "Export ADC Data",  "" );
+
+	mExportTiming.reset( new AnalyzerSettingInterfaceBool() );
+	mExportTiming->SetTitleAndTooltip( "Export Timing Data", "Time from DRDY falling edge to DCLK rising edge" );
+
 	AddInterface( mSCLKChannelInterface.get() );
 	AddInterface( mDATAChannelInterface.get() );
 	AddInterface( mDRDYChannelInterface.get() );
 	AddInterface( mBitsNumberInterface.get() );
+	AddInterface( mExportData.get() );
+	AddInterface( mExportTiming.get() );
 
-	AddExportOption( 0, "Export as text/csv file" );
-	AddExportExtension( 0, "text", "txt" );
+	AddExportOption( 0, "Export as csv file" );
 	AddExportExtension( 0, "csv", "csv" );
 
 	AddAllChannels(false);
@@ -56,7 +65,8 @@ bool SPIADS127xAnalyzerSettings::SetSettingsFromInterfaces()
 	Channel_DATA = mDATAChannelInterface->GetChannel();
 	Channel_DRDY = mDRDYChannelInterface->GetChannel();
 	bits = mBitsNumberInterface->GetNumber();
-//	mBitRate = mBitRateInterface->GetInteger();
+	export_data = mExportData->GetValue();
+	export_timing = mExportTiming->GetValue();
 
 	AddAllChannels(true);
 
@@ -69,6 +79,8 @@ void SPIADS127xAnalyzerSettings::UpdateInterfacesFromSettings()
 	mDATAChannelInterface->SetChannel( Channel_DATA );
 	mDRDYChannelInterface->SetChannel( Channel_DRDY );
 	mBitsNumberInterface->SetNumber( bits );
+	mExportData->SetValue(export_data);
+	mExportTiming->SetValue(export_timing);
 }
 
 void SPIADS127xAnalyzerSettings::LoadSettings( const char* settings )
@@ -80,6 +92,8 @@ void SPIADS127xAnalyzerSettings::LoadSettings( const char* settings )
 	text_archive >> Channel_DATA;
 	text_archive >> Channel_DRDY;
 	text_archive >> bits;
+	text_archive >> export_data;
+	text_archive >> export_timing;
 
 	AddAllChannels(true);
 
@@ -94,6 +108,8 @@ const char* SPIADS127xAnalyzerSettings::SaveSettings()
 	text_archive << Channel_DATA;
 	text_archive << Channel_DRDY;
 	text_archive << bits;
+	text_archive << export_data;
+	text_archive << export_timing;
 
 	return SetReturnString( text_archive.GetString() );
 }

@@ -26,6 +26,8 @@ void SPIADS127xAnalyzer::WorkerThread()
 {
 	mSampleRateHz = GetSampleRate();
 	U64 data_ready_reaction_samples;
+	U64 next_SCLK_samples;
+	U64 next_drdy_samples;
 
 	mSCLK = GetAnalyzerChannelData( mSettings->Channel_SCLK );
 	mDATA = GetAnalyzerChannelData( mSettings->Channel_DATA );
@@ -34,45 +36,73 @@ void SPIADS127xAnalyzer::WorkerThread()
 	if( mDRDY->GetBitState() == BIT_LOW )
 		mDRDY->AdvanceToNextEdge();
 
+	bool chop_8lsb = (mSettings->bits == 16);
 	for(;;)
 	{
 		U32 data;
 
 		mDRDY->AdvanceToNextEdge(); //falling edge
 		mSCLK->AdvanceToAbsPosition(mDRDY->GetSampleNumber());
-		data_ready_reaction_samples = (mDRDY->GetSampleNumber() - mSCLK->GetSampleOfNextEdge());
-		mDRDY->AdvanceToNextEdge(); // RE 
-
-		for(int a = 0; a < 8; a++)
+		next_SCLK_samples = mSCLK->GetSampleOfNextEdge();
+		data_ready_reaction_samples = (next_SCLK_samples - mDRDY->GetSampleNumber());
+		mDRDY->AdvanceToNextEdge(); // RE
+		if( next_SCLK_samples > mDRDY->GetSampleNumber())
 		{
-			U64 starting_sample = mSCLK->GetSampleOfNextEdge();
-			data = 0;
-			for( U32 i=23; i>=0; i-- )
-			{
-				mSCLK->AdvanceToNextEdge(); // RE 
-
-				//let's put a dot exactly where we sample this bit:
-				mResults->AddMarker( mSCLK->GetSampleNumber(), AnalyzerResults::DownArrow, mSettings->Channel_SCLK );
-				mResults->AddMarker( mSCLK->GetSampleNumber(), AnalyzerResults::X, mSettings->Channel_DATA );
-				mDATA->AdvanceToAbsPosition( mSCLK->GetSampleNumber() );
-				if( mDATA->GetBitState() == BIT_HIGH )
-					data |= (1 << i);
-
-				mSCLK->AdvanceToNextEdge(); // FE
-			}
-
+			mResults->AddMarker( mDRDY->GetSampleNumber(), AnalyzerResults::ErrorX, mSettings->Channel_SCLK );
+		}
+		else
+		{
 			Frame frame;
-			frame.mData1 = 0x55;
-			frame.mFlags = 0;
-			frame.mStartingSampleInclusive = starting_sample;
-			frame.mEndingSampleInclusive = mSCLK->GetSampleNumber();
-
+			frame.mData1 = data_ready_reaction_samples;
+			frame.mFlags = 1;
+			frame.mStartingSampleInclusive = mSCLK->GetSampleNumber();
+			frame.mEndingSampleInclusive = mDRDY->GetSampleNumber();
 			mResults->AddFrame( frame );
 			mResults->CommitResults();
-			ReportProgress( frame.mEndingSampleInclusive );
+
+			for(int a = 0; a < 8; a++)
+			{
+				U64 starting_sample = mSCLK->GetSampleOfNextEdge();
+				data = 0;
+				for( int i=23; i>=0; i-- )
+				{
+					mSCLK->AdvanceToNextEdge(); // RE 
+
+					//let's put a dot exactly where we sample this bit:
+					mResults->AddMarker( mSCLK->GetSampleNumber(), AnalyzerResults::UpArrow, mSettings->Channel_SCLK );
+					mDATA->AdvanceToAbsPosition( mSCLK->GetSampleNumber() );
+					if( mDATA->GetBitState() == BIT_HIGH )
+					{
+						data |= (1 << i);
+						if(chop_8lsb && i < 8)
+							mResults->AddMarker( mSCLK->GetSampleNumber(), AnalyzerResults::X, mSettings->Channel_DATA );
+						else
+							mResults->AddMarker( mSCLK->GetSampleNumber(), AnalyzerResults::One, mSettings->Channel_DATA );
+					}
+					else
+					{
+						if(chop_8lsb && i < 8)
+							mResults->AddMarker( mSCLK->GetSampleNumber(), AnalyzerResults::X, mSettings->Channel_DATA );
+						else
+							mResults->AddMarker( mSCLK->GetSampleNumber(), AnalyzerResults::Zero, mSettings->Channel_DATA );
+					}
+					mSCLK->AdvanceToNextEdge(); // FE
+				}
+
+				if(mSettings->bits == 16)
+					frame.mData1 = data >> 8;
+				else
+					frame.mData1 = data;
+				frame.mFlags = 0;
+				frame.mData2 = a;
+				frame.mStartingSampleInclusive = starting_sample;
+				frame.mEndingSampleInclusive = mSCLK->GetSampleNumber();
+
+				mResults->AddFrame( frame );
+				mResults->CommitResults();
+				ReportProgress( frame.mEndingSampleInclusive );
+			}
 		}
-		mDRDY->AdvanceToNextEdge();  // FE
-		mDRDY->AdvanceToNextEdge();  // RE
 	}
 }
 

@@ -24,7 +24,15 @@ void SPIADS127xAnalyzerResults::GenerateBubbleText( U64 frame_index, Channel& ch
 		Frame frame = GetFrame( frame_index );
 
 		char number_str[128];
-		AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 32, number_str, 128 );
+		if(frame.mFlags == 1)
+		{
+//			AnalyzerHelpers::GetTimeString( frame.mData1, 0, mAnalyzer->GetSampleRate(), number_str, 128 );
+			sprintf(number_str, "%.8f", (double)frame.mData1 / mAnalyzer->GetSampleRate());
+		}
+		else
+		{
+			AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 32, number_str, 128 );
+		}
 		AddResultString( number_str );
 	}
 }
@@ -36,40 +44,55 @@ void SPIADS127xAnalyzerResults::GenerateExportFile( const char* file, DisplayBas
 	U64 trigger_sample = mAnalyzer->GetTriggerSample();
 	U32 sample_rate = mAnalyzer->GetSampleRate();
 
-	file_stream << "Time [s],Value" << std::endl;
+	file_stream << "Time [s]";
+	if(mSettings->export_timing)
+		file_stream << ",delay";
+	if(mSettings->export_data)
+		file_stream << ",1,2,3,4,5,6,7,8";
 
 	U64 num_frames = GetNumFrames();
 	for( U32 i=0; i < num_frames; i++ )
 	{
 		Frame frame = GetFrame( i );
 		
-		char time_str[128];
-		AnalyzerHelpers::GetTimeString( frame.mStartingSampleInclusive, trigger_sample, sample_rate, time_str, 128 );
-
 		char number_str[128];
-		AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 32, number_str, 128 );
 
-		file_stream << time_str << "," << number_str << std::endl;
-
+		if(frame.mFlags == 1)
+		{
+			char time_str[128];
+			AnalyzerHelpers::GetTimeString( frame.mStartingSampleInclusive, trigger_sample, sample_rate, time_str, 128 );
+			file_stream << std::endl << time_str;
+			if(mSettings->export_timing)
+			{
+//				AnalyzerHelpers::GetTimeString( frame.mData1, 0, sample_rate, number_str, 128 );
+				sprintf(number_str, "%.8f", (double)frame.mData1 / mAnalyzer->GetSampleRate());
+				file_stream << "," << number_str;
+			}
+		}
+		else if(mSettings->export_data)
+		{
+			AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 32, number_str, 128 );
+			file_stream << "," << number_str;
+		}
 		if( UpdateExportProgressAndCheckForCancel( i, num_frames ) == true )
 		{
 			file_stream.close();
 			return;
 		}
 	}
-
+	file_stream << std::endl;
 	file_stream.close();
 }
 
 void SPIADS127xAnalyzerResults::GenerateFrameTabularText( U64 frame_index, DisplayBase display_base )
 {
 #ifdef SUPPORTS_PROTOCOL_SEARCH
-	Frame frame = GetFrame( frame_index );
-	ClearTabularText();
-
-	char number_str[128];
-	AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 32, number_str, 128 );
-	AddTabularText( number_str );
+// 	Frame frame = GetFrame( frame_index );
+// 	ClearTabularText();
+// 
+// 	char number_str[128];
+// 	AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 32, number_str, 128 );
+// 	AddTabularText( number_str );
 #endif
 }
 
