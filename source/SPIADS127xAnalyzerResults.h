@@ -24,6 +24,8 @@ protected: //functions
 protected:  //vars
 	SPIADS127xAnalyzerSettings* mSettings;
 	SPIADS127xAnalyzer* mAnalyzer;
+
+	void format_number(DisplayBase display_base, U64 value, char *buf, int buf_len);
 };
 
 #endif //SPIADS127X_ANALYZER_RESULTS

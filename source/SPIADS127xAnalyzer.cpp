@@ -68,7 +68,6 @@ void SPIADS127xAnalyzer::WorkerThread()
 				{
 					mSCLK->AdvanceToNextEdge(); // RE 
 
-					//let's put a dot exactly where we sample this bit:
 					mResults->AddMarker( mSCLK->GetSampleNumber(), AnalyzerResults::UpArrow, mSettings->Channel_SCLK );
 					mDATA->AdvanceToAbsPosition( mSCLK->GetSampleNumber() );
 					if( mDATA->GetBitState() == BIT_HIGH )

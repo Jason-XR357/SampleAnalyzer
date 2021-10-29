@@ -16,6 +16,31 @@ SPIADS127xAnalyzerResults::~SPIADS127xAnalyzerResults()
 {
 }
 
+void SPIADS127xAnalyzerResults::format_number(DisplayBase display_base, U64 value, char *buf, int buf_len)
+{
+	if(mSettings->bits == 16.0)
+	{
+		if(display_base == Decimal)
+			sprintf(buf, "%d", (signed short)value);
+		else
+			AnalyzerHelpers::GetNumberString( value, display_base, 16, buf, buf_len);
+	}
+	else
+	{
+		if(display_base == Decimal)
+		{
+			int tval;
+			if(value & 0x800000)
+				tval = 0xff000000 | value;
+			else
+				tval = value;
+			sprintf(buf, "%d", (int)tval);
+		}
+		else
+			AnalyzerHelpers::GetNumberString( value, display_base, 24, buf, buf_len);
+	}
+}
+
 void SPIADS127xAnalyzerResults::GenerateBubbleText( U64 frame_index, Channel& channel, DisplayBase display_base )
 {
 	if(channel == mSettings->Channel_DATA)
@@ -31,7 +56,7 @@ void SPIADS127xAnalyzerResults::GenerateBubbleText( U64 frame_index, Channel& ch
 		}
 		else
 		{
-			AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 32, number_str, 128 );
+			format_number(display_base, frame.mData1, number_str, sizeof(number_str));
 		}
 		AddResultString( number_str );
 	}
@@ -71,7 +96,7 @@ void SPIADS127xAnalyzerResults::GenerateExportFile( const char* file, DisplayBas
 		}
 		else if(mSettings->export_data)
 		{
-			AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 32, number_str, 128 );
+			format_number(display_base, frame.mData1, number_str, sizeof(number_str));
 			file_stream << "," << number_str;
 		}
 		if( UpdateExportProgressAndCheckForCancel( i, num_frames ) == true )
